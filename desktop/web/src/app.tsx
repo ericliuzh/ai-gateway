@@ -27,7 +27,6 @@ import { gatewayApi } from "./api";
 import { Button } from "./components/ui/button";
 import {
   GATEWAY_ERROR_PREFIX,
-  MODEL_CACHE_MAX_AGE_MS,
   MODEL_CACHE_STORAGE_KEY,
   NINEBOT_PRIVATE_DEPLOYMENT_PRESET,
   QUOTA_CACHE_STORAGE_KEY,
@@ -191,17 +190,17 @@ function DefaultRouteSection({ providers, selected, onChanged, onError }: { prov
     setModels(selected.provider_id ? nextCache[selected.provider_id]?.models ?? [] : []);
     setLoadingModels(false);
   }, [providers, selected.provider_id]);
-  const loadModels = React.useCallback(async (forceRefresh = false) => {
+  const loadModels = React.useCallback(async () => {
     const providerId = selected.provider_id;
     if (!providerId) return;
     const cached = modelCacheRef.current[providerId];
     if (cached) {
       setModels(cached.models);
-      if (!forceRefresh && Date.now() - cached.fetchedAt <= MODEL_CACHE_MAX_AGE_MS) return;
     }
     const inFlight = modelRequestsRef.current.get(providerId);
     if (inFlight) return inFlight;
-    setLoadingModels(true);
+    // Keep cached options usable while revalidating in the background.
+    setLoadingModels(!cached);
     const request = gatewayApi.models(providerId)
       .then((items) => {
         const models = [...items].sort((a, b) => a.id.localeCompare(b.id));
@@ -210,7 +209,10 @@ function DefaultRouteSection({ providers, selected, onChanged, onError }: { prov
         if (selectedProviderIdRef.current === providerId) setModels(models);
       })
       .catch((error) => onError(errorMessage(error)))
-      .finally(() => { modelRequestsRef.current.delete(providerId); setLoadingModels(false); });
+      .finally(() => {
+        modelRequestsRef.current.delete(providerId);
+        if (selectedProviderIdRef.current === providerId) setLoadingModels(false);
+      });
     modelRequestsRef.current.set(providerId, request);
     return request;
   }, [onError, selected.provider_id]);

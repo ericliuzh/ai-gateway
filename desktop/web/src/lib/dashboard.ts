@@ -9,7 +9,6 @@ export const GATEWAY_ERROR_PREFIX = "AI网关错误：";
 export const UPSTREAM_ERROR_PREFIX = "上游服务错误：";
 export const MODEL_CACHE_STORAGE_KEY = "ai-gateway:model-cache:v1";
 export const QUOTA_CACHE_STORAGE_KEY = "ai-gateway:quota-cache:v1";
-export const MODEL_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export type Dialog = "provider" | "delete-provider" | null;
 export type QuotaMap = Record<string, CodexUsageResponse | undefined>;
